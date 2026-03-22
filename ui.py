@@ -42,6 +42,7 @@ from pipecat.frames.frames import (
     Frame,
     TTSStartedFrame,
     TTSStoppedFrame,
+    TTSTextFrame,
     UserStartedSpeakingFrame,
     UserStoppedSpeakingFrame,
 )
@@ -354,13 +355,20 @@ class VoiceUIProcessor(FrameProcessor):
             self._ui.set_thinking()
             self._show_latest_user_from_context()
 
+        # ── TTS word-by-word text (timed to audio playback) ────────────
+        elif isinstance(frame, TTSTextFrame):
+            # Cartesia emits one TTSTextFrame per word, synchronized to
+            # audio playback via PTS. Streaming these to the UI makes the
+            # text appear word-by-word in lockstep with the spoken audio.
+            if frame.text:
+                self._ui.append_bot_text(frame.text + " ")
+
         # ── TTS playing audio ───────────────────────────────────────────
         elif isinstance(frame, TTSStartedFrame):
             self._ui.set_speaking()
 
         elif isinstance(frame, (TTSStoppedFrame, BotStoppedSpeakingFrame)):
             # TTS finished — commit the bot message and go back to idle.
-            # Bot text was already fed via on_assistant_turn_stopped in main.py.
             self._ui.finalise_bot_message()
             self._ui.set_idle()
 

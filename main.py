@@ -194,13 +194,6 @@ async def main() -> None:
         ),
     )
 
-    # LLMFullResponseEndFrame is consumed internally by LLMAssistantAggregator
-    # and never reaches VoiceUIProcessor downstream. Use this event handler
-    # instead to capture the full bot response text for the UI.
-    @assistant_aggregator.event_handler("on_assistant_turn_stopped")
-    async def on_bot_message(agg, message):
-        ui.append_bot_text(message.content)
-
     # ------------------------------------------------------------------
     # 9. UI observer processor
     #    Placed at the END of the pipeline so it can see every frame that
