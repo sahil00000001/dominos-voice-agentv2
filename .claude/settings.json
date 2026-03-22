@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m venv venv)",
+      "Bash(venv/Scripts/pip install:*)",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(find /c/Users/vashi/Downloads/dominos-voice-agent2 -name vercel.json -o -name *.json)",
+      "Bash(find /c/Users/vashi/Downloads/dominos-voice-agent2 -maxdepth 2 -name *.py)",
+      "Bash(ls c:/Users/vashi/Downloads/dominos-voice-agentv2/*.py)"
+    ]
+  }
+}

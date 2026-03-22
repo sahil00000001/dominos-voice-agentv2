@@ -1,0 +1,8 @@
+# ── Vercel production dependencies ────────────────────────────────────────────
+# Only what api/index.py needs. All three API endpoints (STT, LLM, TTS) use
+# stdlib urllib for HTTP calls — no extra HTTP client needed.
+fastapi
+
+# ── Local development ─────────────────────────────────────────────────────────
+# For running main.py locally (Pipecat pipeline with mic/speakers), use:
+#   pip install -r requirements-local.txt
