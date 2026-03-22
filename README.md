@@ -15,36 +15,36 @@ When you run the program, an AI agent named **Priya** answers the call and:
 5. Offers one upsell deal (Choco Lava Cake, Garlic Bread, Pepsi, etc.)
 6. Gives a 30–45 minute delivery estimate and **automatically ends the call**
 
-All of this happens through **real voice** — you speak, it listens, it talks back.
+Beyond ordering, Priya handles **18 call scenarios** including complaints, refunds, allergy queries, bulk orders, and more — and logs everything to a live browser dashboard in real time.
 
 ---
 
 ## Tech Stack
 
-| Layer | Service | Why |
+| Layer | Service | Detail |
 |---|---|---|
-| **Speech-to-Text** | Deepgram | Fast, accurate, free tier available |
-| **AI Brain** | Groq (llama-3.3-70b-versatile) | Ultra-fast inference, free tier |
-| **Text-to-Speech** | Cartesia | Natural warm voice, low latency, free tier |
-| **Framework** | Pipecat 0.0.105 | Real-time voice pipeline framework |
-| **Dashboard** | FastAPI + WebSocket | Live browser dashboard at localhost:8000 |
+| **Speech-to-Text** | Deepgram nova-3-general | Fast, accurate, free tier |
+| **AI Brain** | Groq llama-3.1-8b-instant | Ultra-fast inference, free tier |
+| **Text-to-Speech** | Cartesia sonic-3 | Natural voice, word-level timestamps |
+| **Framework** | Pipecat | Real-time voice pipeline |
+| **Dashboard** | FastAPI + WebSocket | Live browser UI at `localhost:8000` |
 
 ---
 
 ## Project Structure
 
 ```
-dominos-voice-agent2/
-├── main.py           ← Pipeline setup, echo-fix strategy, call-end logic
-├── tools.py          ← Order functions the LLM can call (confirm, upsell, finalise)
-├── system_prompt.py  ← Priya's personality, menu, and call script
-├── ui.py             ← Pipecat FrameProcessor that drives the dashboard state
-├── web_ui.py         ← FastAPI + WebSocket server, broadcasts events to browser
+dominos-voice-agentv2/
+├── main.py           ← Pipeline setup, tool registration, call-end logic
+├── tools.py          ← 5 LLM-callable tools (confirm, upsell, finalise, complaint, refund)
+├── system_prompt.py  ← Priya's personality, menu, 18 scenarios, tool rules
+├── ui.py             ← Pipecat FrameProcessor — drives dashboard + latency timing
+├── web_ui.py         ← FastAPI + WebSocket server, order/complaint/latency tracking
 ├── static/
-│   └── index.html    ← Browser dashboard UI
+│   └── index.html    ← Jarvis-style animated browser dashboard
 ├── requirements.txt  ← All Python dependencies
 ├── .env.example      ← Template for API keys
-└── .env              ← Your actual API keys (never commit this file)
+└── .env              ← Your actual API keys (never commit this)
 ```
 
 ---
@@ -54,56 +54,121 @@ dominos-voice-agent2/
 ```
 Your Microphone
       ↓
-Deepgram STT       ← converts your speech to text in real time
+Deepgram STT       ← converts speech to text in real time
       ↓
-User Aggregator    ← waits for speech pause (0.8s), mutes mic while bot speaks
+User Aggregator    ← waits for pause (0.3s VAD), mutes mic during tool calls
       ↓
-Groq LLM           ← generates Priya's reply (may call tools)
+Groq LLM           ← generates Priya's reply (may call tools mid-conversation)
       ↓
-Cartesia TTS       ← converts text to natural speech audio
+Cartesia TTS       ← token-stream mode: starts speaking before full reply is ready
       ↓
 Your Speakers
       ↓
 Assistant Aggregator  ← stores reply in conversation memory
       ↓
-UI Observer           ← updates the live browser dashboard
+UI Observer           ← measures latency, drives live browser dashboard
 ```
 
-**Echo prevention:** A `DelayedUnmuteStrategy` keeps the microphone muted for 800 ms after the bot finishes speaking, preventing Priya's own voice from being picked up and sent back to the LLM.
+**Latency optimisations applied:**
+- `TextAggregationMode.TOKEN` — TTS starts on the first token, not after a full sentence
+- `llama-3.1-8b-instant` — 4–5× faster than 70B on Groq's free tier
+- VAD `stop_secs=0.3` — speech-end detection 40% faster than default
+- Word-level `TTSTextFrame` timestamps — chat text stays in sync with audio
 
 ---
 
-## The Three AI Tools (Function Calling)
+## The Five AI Tools (Function Calling)
 
-The LLM can call these Python functions mid-conversation:
+The LLM can call these Python functions mid-conversation. Each one updates the live dashboard instantly.
 
 ### `confirm_order`
 Called when the customer confirms their full order and address.
-- Logs: customer name, items, delivery address, total price
-- Tells the LLM: "Order confirmed, ask one upsell question"
+- Logs customer name, items, delivery address, total
+- Updates the **Order Cart** panel on the dashboard
+- Tells the LLM: "Order logged, ask one upsell question"
 
 ### `add_upsell_item`
 Called when the customer accepts an upsell offer.
-- Logs: item name and price
+- Appends the upsell item and price to the Order Cart
 - Tells the LLM: "Item added, say the closing line"
 
 ### `finalise_order`
-Called at the very end of the call after the closing line.
-- Logs: final order summary and estimated delivery time
-- **Automatically shuts down the pipeline** after 3 seconds (call ends)
+Called at the very end after the closing line.
+- Marks order as finalised with delivery ETA
+- **Automatically shuts down the pipeline** after 3 seconds
 
-These appear in the **ORDER EVENTS** panel on the browser dashboard in real time.
+### `log_complaint`
+Called immediately when a customer reports a problem (food poisoning, wrong order, cold food, missing delivery, bad quality, late delivery).
+- Logs complaint type, customer name, and full complaint text
+- Pushes a red-bordered complaint event to the dashboard
+- Increments the complaints counter in the stats bar
+
+### `initiate_refund`
+Called when a monetary refund is promised.
+- Logs refund amount and reason
+- Pushes a purple-bordered refund event to the dashboard
+
+---
+
+## The 18 Call Scenarios
+
+Priya is trained to handle any of these situations naturally:
+
+| # | Scenario | Trigger |
+|---|---|---|
+| 1 | Food Poisoning | Customer reports falling sick after eating |
+| 2 | Wrong Order | Received wrong pizza / toppings |
+| 3 | Missing Delivery | Order placed but never arrived |
+| 4 | Late Delivery | Order taking more than 45 minutes |
+| 5 | Cold / Bad Quality | Food arrived cold, stale, or undercooked |
+| 6 | Allergy Concern | Gluten, dairy, nuts, egg questions |
+| 7 | Jain / Vegan Diet | No onion/garlic or strict veg requests |
+| 8 | Bulk / Party Order | 5+ pizzas for an event |
+| 9 | Track Existing Order | Where is my order? |
+| 10 | Modify Order | Change order after placing |
+| 11 | Refund Request | Money back for cancelled/bad order |
+| 12 | Store Hours / Location | Timings and nearest store |
+| 13 | Offers / Discounts | Deals, coupons, loyalty points |
+| 14 | Angry Customer | Shouting or abusive caller |
+| 15 | Is Priya a Robot? | "Am I talking to AI?" |
+| 16 | Cancel Order | Cancel a placed order |
+| 17 | Prank Call | Joking or off-topic caller |
+| 18 | Outside Delivery Zone | Address not serviceable |
 
 ---
 
 ## The Browser Dashboard
 
-When running, your browser opens at `http://localhost:8000` and shows:
+When running, your browser opens at **`http://localhost:8000`** and shows:
 
-- **Status indicator** — IDLE / LISTENING / THINKING / SPEAKING (animated)
-- **Live conversation** — both your messages and Priya's replies appear in real time
-- **Order events panel** — confirm / upsell / finalise events with timestamps
-- **Stats bar** — call count, orders, revenue, upsells
+### Status Panel (left)
+- Animated orb: IDLE / LISTENING / THINKING / SPEAKING
+- Waveform bars and radial equalizer (canvas-animated)
+- Signal strength meter with live jitter
+- **Latency meter** — measures ms from end of your speech to start of Priya's audio
+- **Turn counter** — total conversation turns
+- **Active scenario tag** — lights up when a scenario is detected
+- All 18 scenario chips (the active one highlights)
+
+### Conversation Panel (centre)
+- Live chat transcript — your messages and Priya's replies
+- Text appears word-by-word in sync with the audio (Cartesia word timestamps)
+- Recording indicator while you speak, typing dots while Priya thinks
+
+### Right Column
+- **Order Cart** (top) — customer name, delivery address, itemised order, upsell add-ons, grand total, status badge, ETA
+- **Event Log** (bottom) — all tool-call events colour-coded:
+  - 🟢 Green — order confirmed
+  - 🟡 Yellow — upsell added
+  - 🔵 Cyan — order finalised
+  - 🔴 Red — complaint logged
+  - 🟣 Purple — refund initiated
+
+### Stats Bar (top)
+Calls · Orders · Revenue · Upsells · **Complaints** · **Avg Latency** · Duration
+
+### Flow Bar
+Visual pipeline showing: GREETING → ORDERING → CONFIRMED → UPSELL → COMPLETE
 
 ---
 
@@ -125,8 +190,8 @@ Download from: https://python.org/downloads/release/python-3120
 ### Step 3 — Clone and set up the project
 
 ```powershell
-git clone https://github.com/sahil00000001/dominos-voice-agent2.git
-cd dominos-voice-agent2
+git clone https://github.com/sahil00000001/dominos-voice-agentv2.git
+cd dominos-voice-agentv2
 
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -165,14 +230,14 @@ python main.py
 The browser dashboard opens automatically at **http://localhost:8000**.
 Speak into your microphone. Press **Ctrl+C** to end the session.
 
-> **Tip:** Use **headphones** for the best experience. Without headphones, the microphone can pick up Priya's voice from the speakers. The `DelayedUnmuteStrategy` reduces this significantly, but headphones eliminate it completely.
+> **Tip:** Use **headphones** for the best experience. Without headphones, the microphone can pick up Priya's voice from the speakers and create an echo loop.
 
 ---
 
 ## Every Time You Come Back
 
 ```powershell
-cd dominos-voice-agent2
+cd dominos-voice-agentv2
 .\.venv\Scripts\Activate.ps1
 python main.py
 ```
@@ -202,6 +267,7 @@ python main.py
 - **Change Priya's voice** — Browse voices at https://play.cartesia.ai and replace `voice_id` in `main.py`
 - **Change the menu** — Edit `system_prompt.py`
 - **Change the personality** — Edit the call flow rules in `system_prompt.py`
+- **Add more tools** — Add a handler in `tools.py`, register it in `main.py`, add a schema in `get_tool_definitions()`
 - **Connect to a real POS** — Replace the log calls in `tools.py` with actual API calls to your ordering system
 
 ---
@@ -217,4 +283,4 @@ fastapi + uvicorn                          ← web dashboard server
 
 ---
 
-*Built with Pipecat · Groq (Llama 3.3 70B) · Deepgram · Cartesia*
+*Built with Pipecat · Groq llama-3.1-8b-instant · Deepgram nova-3 · Cartesia sonic-3*

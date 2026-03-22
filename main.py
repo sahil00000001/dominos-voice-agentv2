@@ -82,6 +82,8 @@ from tools import (
     add_upsell_item,
     confirm_order,
     finalise_order,
+    log_complaint,
+    initiate_refund,
     get_tool_definitions,
 )
 from ui import VoiceUIProcessor
@@ -162,7 +164,8 @@ async def main() -> None:
     # ------------------------------------------------------------------
     llm.register_function("confirm_order",   confirm_order)
     llm.register_function("add_upsell_item", add_upsell_item)
-    llm.register_function("finalise_order",  finalise_order)
+    llm.register_function("log_complaint",   log_complaint)
+    llm.register_function("initiate_refund", initiate_refund)
 
     # While a tool is executing, speak a filler so there's no dead silence
     @llm.event_handler("on_function_calls_started")

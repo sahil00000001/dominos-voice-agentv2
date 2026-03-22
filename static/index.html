@@ -109,9 +109,11 @@ body>*:not(#c-net):not(#c-hex):not(#c-eq){ position:relative; z-index:1; }
   min-width:255px; box-shadow:0 8px 32px rgba(0,0,0,0.55); position:relative; overflow:hidden;
 }
 .toast.show{transform:translateX(0);opacity:1;}
-.toast.confirmed{background:rgba(0,18,12,0.95);border-left-color:var(--green);color:#7fffd4;}
-.toast.upsell   {background:rgba(20,12,0,0.95); border-left-color:var(--yellow);color:#fde68a;}
-.toast.finalised{background:rgba(0,8,22,0.95);  border-left-color:var(--cyan);  color:#a5f3fc;}
+.toast.confirmed {background:rgba(0,18,12,0.95); border-left-color:var(--green);  color:#7fffd4;}
+.toast.upsell    {background:rgba(20,12,0,0.95);  border-left-color:var(--yellow); color:#fde68a;}
+.toast.finalised {background:rgba(0,8,22,0.95);   border-left-color:var(--cyan);   color:#a5f3fc;}
+.toast.complaint {background:rgba(22,4,8,0.95);   border-left-color:var(--red);    color:#fca5a5;}
+.toast.refund    {background:rgba(14,6,22,0.95);  border-left-color:var(--purple); color:#c4b5fd;}
 .toast-bar{position:absolute;bottom:0;left:0;height:1px;background:currentColor;opacity:0.35;animation:tdrain 4.5s linear forwards;}
 @keyframes tdrain{from{width:100%}to{width:0%}}
 
@@ -379,6 +381,35 @@ body>*:not(#c-net):not(#c-hex):not(#c-eq){ position:relative; z-index:1; }
 .msg.user .mtime{text-align:right;}
 .cursor{display:inline-block;width:2px;height:12px;background:var(--cyan);vertical-align:middle;margin-left:1px;animation:blink 0.65s step-end infinite;}
 
+/* ── ORDER CART ───────────────────────────────────────────────────────── */
+.right-col{display:flex;flex-direction:column;gap:11px;overflow:hidden;min-height:0;}
+.cart-body{flex:1;overflow-y:auto;padding:9px 11px;display:flex;flex-direction:column;gap:6px;min-height:0;}
+.cart-body::-webkit-scrollbar{width:2.5px;}
+.cart-body::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
+.cart-ph{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;color:var(--t3);}
+.cart-ph div:first-child{font-size:22px;opacity:0.28;animation:phfloat 3.5s ease-in-out infinite;}
+.cart-ph div:last-child{font-family:var(--fhud);font-size:8px;letter-spacing:2px;}
+
+.cart-customer{font-family:var(--fhud);font-size:10.5px;font-weight:700;color:var(--cyan);letter-spacing:1.5px;margin-bottom:2px;}
+.cart-addr{font-size:10px;color:var(--t2);margin-bottom:8px;line-height:1.5;border-bottom:1px solid var(--border);padding-bottom:6px;}
+.cart-section{font-family:var(--fhud);font-size:7px;letter-spacing:2px;color:var(--t3);text-transform:uppercase;margin-bottom:4px;}
+.cart-item{display:flex;justify-content:space-between;align-items:flex-start;padding:4px 0;border-bottom:1px solid rgba(0,212,255,0.05);}
+.ci-name{font-size:11px;color:var(--text);flex:1;line-height:1.4;}
+.ci-price{font-family:var(--fmono);font-size:10.5px;color:var(--cyan);margin-left:8px;flex-shrink:0;}
+.cart-upsell-item{display:flex;justify-content:space-between;padding:3px 0;}
+.cu-name{font-size:10.5px;color:var(--yellow);}
+.cu-price{font-family:var(--fmono);font-size:10.5px;color:var(--yellow);}
+.cart-divider{height:1px;background:var(--border);margin:6px 0;}
+.cart-total-row{display:flex;justify-content:space-between;padding:4px 0;}
+.ct-label{font-family:var(--fhud);font-size:8.5px;letter-spacing:1.5px;color:var(--t2);}
+.ct-value{font-family:var(--fmono);font-size:14px;font-weight:700;color:var(--green);}
+.cart-status-row{display:flex;align-items:center;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border);}
+.cstatus{font-family:var(--fhud);font-size:7.5px;font-weight:700;letter-spacing:1.2px;padding:2px 9px;border-radius:2px;border:1px solid;}
+.cstatus.pending  {color:var(--yellow);border-color:rgba(251,191,36,0.4);background:rgba(251,191,36,0.07);}
+.cstatus.confirmed{color:var(--green); border-color:rgba(0,255,159,0.4); background:rgba(0,255,159,0.07);}
+.cstatus.finalised{color:var(--cyan);  border-color:rgba(0,212,255,0.4); background:rgba(0,212,255,0.07);}
+.ceta{font-family:var(--fmono);font-size:10.5px;color:var(--t2);}
+
 /* ── ORDER EVENTS ────────────────────────────────────────────────────── */
 .events{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;min-height:0;}
 .events::-webkit-scrollbar{width:2.5px;}
@@ -393,11 +424,23 @@ body>*:not(#c-net):not(#c-hex):not(#c-eq){ position:relative; z-index:1; }
 }
 .ev:hover{transform:translateX(-2px);box-shadow:3px 0 12px rgba(0,0,0,0.3);}
 @keyframes evin{from{opacity:0;transform:translateX(18px) scale(0.96)}to{opacity:1;transform:none}}
-.ev.confirmed{border-left-color:var(--green); background:rgba(0,255,159,0.04);}
-.ev.upsell   {border-left-color:var(--yellow);background:rgba(251,191,36,0.04);}
-.ev.finalised{border-left-color:var(--cyan);  background:rgba(0,212,255,0.04);}
+.ev.confirmed {border-left-color:var(--green);  background:rgba(0,255,159,0.04);}
+.ev.upsell    {border-left-color:var(--yellow); background:rgba(251,191,36,0.04);}
+.ev.finalised {border-left-color:var(--cyan);   background:rgba(0,212,255,0.04);}
+.ev.complaint {border-left-color:var(--red);    background:rgba(255,60,95,0.05);}
+.ev.refund    {border-left-color:var(--purple); background:rgba(139,92,246,0.05);}
 .ev-time{font-family:var(--fmono);font-size:8px;color:var(--t3);margin-bottom:3px;}
 .ev-text{font-size:11px;color:var(--text);line-height:1.5;}
+
+/* ── LATENCY METER ───────────────────────────────────────────────────── */
+.lat-meter{width:100%;padding:0 4px;margin:6px 0 2px;flex-shrink:0;}
+.lat-label{font-family:var(--fhud);font-size:7px;letter-spacing:1.5px;color:var(--t3);margin-bottom:4px;display:flex;justify-content:space-between;}
+.lat-bar{height:3px;background:var(--t3);border-radius:2px;overflow:hidden;position:relative;}
+.lat-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--green),var(--yellow),var(--red));transition:width 0.6s ease;width:0%;}
+.turn-badge{display:flex;justify-content:space-between;padding:0 4px 4px;flex-shrink:0;}
+.turn-k{font-family:var(--fhud);font-size:7px;letter-spacing:1.5px;color:var(--t3);}
+.turn-v{font-family:var(--fmono);font-size:11px;color:var(--cyan);}
+.scenario-tag{margin:4px 4px 0;padding:3px 7px;background:rgba(0,212,255,0.05);border:1px solid var(--border);border-left:2px solid var(--cyan);font-family:var(--fhud);font-size:7.5px;color:var(--cyan);letter-spacing:1px;flex-shrink:0;min-height:22px;transition:all 0.3s;}
 
 /* ── DATA TICKER ─────────────────────────────────────────────────────── */
 .ticker{
@@ -454,11 +497,13 @@ body>*:not(#c-net):not(#c-hex):not(#c-eq){ position:relative; z-index:1; }
 
 <!-- STATS BAR -->
 <div class="statsbar">
-  <div class="stat"><span class="stat-icon">📞</span><span class="stat-lbl">Calls</span>   <span class="stat-val" id="sCalls">0</span></div>
-  <div class="stat"><span class="stat-icon">✅</span><span class="stat-lbl">Orders</span>  <span class="stat-val" id="sOrders">0</span></div>
-  <div class="stat"><span class="stat-icon">₹</span> <span class="stat-lbl">Revenue</span> <span class="stat-val" id="sRevenue">₹0</span></div>
-  <div class="stat"><span class="stat-icon">⭐</span><span class="stat-lbl">Upsells</span> <span class="stat-val" id="sUpsells">0</span></div>
-  <div class="stat"><span class="stat-icon">⏱</span><span class="stat-lbl">Duration</span><span class="stat-val" id="sTimer">--:--</span></div>
+  <div class="stat"><span class="stat-icon">📞</span><span class="stat-lbl">Calls</span>      <span class="stat-val" id="sCalls">0</span></div>
+  <div class="stat"><span class="stat-icon">✅</span><span class="stat-lbl">Orders</span>     <span class="stat-val" id="sOrders">0</span></div>
+  <div class="stat"><span class="stat-icon">₹</span> <span class="stat-lbl">Revenue</span>    <span class="stat-val" id="sRevenue">₹0</span></div>
+  <div class="stat"><span class="stat-icon">⭐</span><span class="stat-lbl">Upsells</span>    <span class="stat-val" id="sUpsells">0</span></div>
+  <div class="stat"><span class="stat-icon">⚠️</span><span class="stat-lbl">Complaints</span> <span class="stat-val" id="sComplaints">0</span></div>
+  <div class="stat"><span class="stat-icon">⚡</span><span class="stat-lbl">Avg Latency</span><span class="stat-val" id="sLatency" style="color:var(--green)">--ms</span></div>
+  <div class="stat"><span class="stat-icon">⏱</span><span class="stat-lbl">Duration</span>   <span class="stat-val" id="sTimer">--:--</span></div>
 </div>
 
 <!-- FLOW BAR -->
@@ -503,6 +548,16 @@ body>*:not(#c-net):not(#c-hex):not(#c-eq){ position:relative; z-index:1; }
         <div class="sig-label"><span>SIGNAL</span><span id="sigPct">0%</span></div>
         <div class="sig-bar"><div class="sig-fill" id="sigFill"></div></div>
       </div>
+
+      <!-- latency meter -->
+      <div class="lat-meter">
+        <div class="lat-label"><span>LATENCY</span><span id="latVal">--ms</span></div>
+        <div class="lat-bar"><div class="lat-fill" id="latFill"></div></div>
+      </div>
+      <div class="turn-badge">
+        <span class="turn-k">TURNS</span><span class="turn-v" id="turnCtr">0</span>
+      </div>
+      <div class="scenario-tag" id="scenarioTag">NO ACTIVE SCENARIO</div>
 
       <!-- scenario chips -->
       <div class="scenarios">
@@ -553,18 +608,37 @@ body>*:not(#c-net):not(#c-hex):not(#c-eq){ position:relative; z-index:1; }
     </div>
   </div>
 
-  <!-- ORDER EVENTS PANEL -->
-  <div class="hp" id="ordersPanel" style="display:flex;flex-direction:column;overflow:hidden;min-height:0;">
-    <div class="br"></div><div class="bl"></div>
-    <div class="phead">
-      <span style="font-size:10px;">📋</span><span class="ptitle">Order Events</span>
-      <span class="pbadge" id="evCount">0 events</span>
-    </div>
-    <div class="events" id="events">
-      <div class="evph" id="evPh">
-        <div>🛒</div><div>ORDER EVENTS LOG</div>
+  <!-- RIGHT COLUMN: CART + EVENTS -->
+  <div class="right-col">
+
+    <!-- ORDER CART PANEL (top ~42%) -->
+    <div class="hp" id="cartPanel" style="display:flex;flex-direction:column;overflow:hidden;min-height:0;flex:0 0 42%;">
+      <div class="br"></div><div class="bl"></div>
+      <div class="phead">
+        <span style="font-size:10px;">🛒</span><span class="ptitle">Order Cart</span>
+        <span class="pbadge" id="cartStatus">–</span>
+      </div>
+      <div class="cart-body" id="cartBody">
+        <div class="cart-ph" id="cartPh">
+          <div>🍕</div><div>ORDER CART EMPTY</div>
+        </div>
       </div>
     </div>
+
+    <!-- ORDER EVENTS PANEL (bottom ~58%) -->
+    <div class="hp" id="ordersPanel" style="display:flex;flex-direction:column;overflow:hidden;min-height:0;flex:1;">
+      <div class="br"></div><div class="bl"></div>
+      <div class="phead">
+        <span style="font-size:10px;">📋</span><span class="ptitle">Event Log</span>
+        <span class="pbadge" id="evCount">0 events</span>
+      </div>
+      <div class="events" id="events">
+        <div class="evph" id="evPh">
+          <div>📡</div><div>EVENTS LOG</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -735,7 +809,8 @@ const RIPPLE={idle:'rgba(139,92,246,0.3)',listening:'rgba(0,255,159,0.4)',thinki
 /* ══ STATE ═══════════════════════════════════════════════════════════ */
 let msgCount=0,evCount=0,botBuf='',botMsgEl=null,typingEl=null,recEl=null;
 let callStarted=false,sessionStart=null,timerInterval=null,orderStep=0;
-let stats={calls:0,orders:0,revenue:0,upsells:0},prevState='';
+let stats={calls:0,orders:0,revenue:0,upsells:0,complaints:0,avg_latency_ms:0},prevState='';
+let cartOrder={};  // accumulated order state from order_update events
 
 /* ══ ELEMENTS ════════════════════════════════════════════════════════ */
 const orb=document.getElementById('orb');
@@ -900,7 +975,7 @@ function addEvent(message,type,time){
 }
 
 /* ══ TOASTS ══════════════════════════════════════════════════════════ */
-const TCF={confirmed:{icon:'✅'},upsell:{icon:'⭐'},finalised:{icon:'🏁'}};
+const TCF={confirmed:{icon:'✅'},upsell:{icon:'⭐'},finalised:{icon:'🏁'},complaint:{icon:'⚠️'},refund:{icon:'💜'}};
 function showToast(message,type){
   const cfg=TCF[type]||{icon:'📋'};
   const t=document.createElement('div');
@@ -928,10 +1003,17 @@ function launchConfetti(){
 /* ══ STATS ═══════════════════════════════════════════════════════════ */
 function updateStats(s){
   if(!s)return; Object.assign(stats,s);
-  animC('sCalls',  stats.calls,              '','');
-  animC('sOrders', stats.orders,             '','');
-  animC('sRevenue',Math.round(stats.revenue),'₹','');
-  animC('sUpsells',stats.upsells,            '','');
+  animC('sCalls',      stats.calls,              '','');
+  animC('sOrders',     stats.orders,             '','');
+  animC('sRevenue',    Math.round(stats.revenue),'₹','');
+  animC('sUpsells',    stats.upsells,            '','');
+  animC('sComplaints', stats.complaints,         '','');
+  // latency text (not animated)
+  const latEl=document.getElementById('sLatency');
+  if(stats.avg_latency_ms>0){
+    latEl.textContent=Math.round(stats.avg_latency_ms)+'ms';
+    latEl.style.color=stats.avg_latency_ms<600?'var(--green)':stats.avg_latency_ms<1200?'var(--yellow)':'var(--red)';
+  }
 }
 function animC(id,target,pre,suf){
   const el=document.getElementById(id);
@@ -944,6 +1026,107 @@ function animC(id,target,pre,suf){
     val+=inc;n++;el.textContent=pre+Math.round(val)+suf;
     if(n>=steps){el.textContent=pre+target+suf;clearInterval(t);}
   },22);
+}
+
+/* ══ LATENCY ══════════════════════════════════════════════════════════ */
+function updateLatency(ms,avgMs){
+  const latVal=document.getElementById('latVal');
+  const latFill=document.getElementById('latFill');
+  latVal.textContent=Math.round(ms)+'ms';
+  // map 0–3000ms → 0–100% width
+  const pct=Math.min(100,ms/30);
+  latFill.style.width=pct+'%';
+  if(avgMs>0){
+    const latEl=document.getElementById('sLatency');
+    latEl.textContent=Math.round(avgMs)+'ms';
+    latEl.style.color=avgMs<600?'var(--green)':avgMs<1200?'var(--yellow)':'var(--red)';
+    stats.avg_latency_ms=avgMs;
+  }
+}
+
+/* ══ SCENARIO ═════════════════════════════════════════════════════════ */
+function updateScenario(name){
+  const tag=document.getElementById('scenarioTag');
+  tag.textContent=name?name.toUpperCase():'NO ACTIVE SCENARIO';
+  tag.style.borderLeftColor=name?'var(--yellow)':'var(--cyan)';
+  tag.style.color=name?'var(--yellow)':'var(--cyan)';
+  // highlight matching chip
+  document.querySelectorAll('.chip').forEach(c=>{
+    c.classList.toggle('active',c.textContent.toLowerCase()===name?.toLowerCase());
+  });
+}
+
+/* ══ ORDER CART ═══════════════════════════════════════════════════════ */
+function renderCart(order){
+  Object.assign(cartOrder,order);
+  const body=document.getElementById('cartBody');
+  const ph=document.getElementById('cartPh');
+  if(!cartOrder.customer_name&&!cartOrder.order_items){
+    if(ph.parentNode!==body)body.prepend(ph);return;
+  }
+  if(ph.parentNode)ph.remove();
+  body.innerHTML='';
+  // customer + address
+  if(cartOrder.customer_name){
+    const cn=document.createElement('div');
+    cn.className='cart-customer';cn.textContent='👤 '+cartOrder.customer_name;
+    body.appendChild(cn);
+  }
+  if(cartOrder.delivery_address){
+    const ca=document.createElement('div');
+    ca.className='cart-addr';ca.textContent='📍 '+cartOrder.delivery_address;
+    body.appendChild(ca);
+  }
+  // items
+  if(cartOrder.order_items?.length){
+    const sec=document.createElement('div');sec.className='cart-section';sec.textContent='Items';body.appendChild(sec);
+    cartOrder.order_items.forEach(item=>{
+      const row=document.createElement('div');row.className='cart-item';
+      row.innerHTML=`<span class="ci-name">${esc(item)}</span>`;
+      body.appendChild(row);
+    });
+  }
+  // upsells
+  if(cartOrder.upsell_items?.length){
+    const sec=document.createElement('div');sec.className='cart-section';sec.style.color='var(--yellow)';sec.textContent='Add-ons';body.appendChild(sec);
+    cartOrder.upsell_items.forEach(ui=>{
+      const row=document.createElement('div');row.className='cart-upsell-item';
+      row.innerHTML=`<span class="cu-name">+ ${esc(ui.name||ui)}</span><span class="cu-price">₹${ui.price||0}</span>`;
+      body.appendChild(row);
+    });
+  }
+  // total
+  if(cartOrder.order_total_inr!=null){
+    const div=document.createElement('div');div.className='cart-divider';body.appendChild(div);
+    const tr=document.createElement('div');tr.className='cart-total-row';
+    const upsellTotal=(cartOrder.upsell_items||[]).reduce((s,u)=>s+(u.price||0),0);
+    const grand=cartOrder.order_total_inr+upsellTotal;
+    tr.innerHTML=`<span class="ct-label">TOTAL</span><span class="ct-value">₹${Math.round(grand)}</span>`;
+    body.appendChild(tr);
+  }
+  // status + ETA
+  const st=cartOrder.status||'pending';
+  const eta=cartOrder.estimated_delivery_minutes;
+  const sr=document.createElement('div');sr.className='cart-status-row';
+  sr.innerHTML=`<span class="cstatus ${st}">${st.toUpperCase()}</span>${eta?`<span class="ceta">ETA ~${eta} min</span>`:''}`;
+  body.appendChild(sr);
+  document.getElementById('cartStatus').textContent=st;
+}
+
+/* ══ COMPLAINT EVENT ══════════════════════════════════════════════════ */
+function addComplaintEvent(data){
+  const isRefund=data.complaint_type==='refund'||data.is_refund;
+  const icon=isRefund?'💜':'⚠️';
+  const cssType=isRefund?'refund':'complaint';
+  const label=isRefund?'REFUND':'COMPLAINT';
+  if(evPh.parentNode)evPh.remove();
+  const d=document.createElement('div');
+  d.className='ev '+cssType;
+  d.innerHTML=`<div class="ev-time">${data.time||''}</div><div class="ev-text">${icon} <strong>${label}</strong> — ${esc(data.customer_name||'')} — ${esc(data.complaint_type?.replace(/_/g,' ').toUpperCase()||'')}<br><small style="color:var(--t2)">${esc(data.text||'')}</small></div>`;
+  eventsEl.appendChild(d);eventsEl.scrollTop=eventsEl.scrollHeight;
+  evCount++;
+  document.getElementById('evCount').textContent=evCount+(evCount===1?' event':' events');
+  showToast((isRefund?'Refund initiated':'Complaint logged')+': '+data.customer_name,cssType);
 }
 
 /* ══ UTILS ═══════════════════════════════════════════════════════════ */
@@ -980,10 +1163,19 @@ function connect(){
         }
         if(msg.bot_buf?.trim())appendChunk(msg.bot_buf);
         if(msg.log_lines?.length)msg.log_lines.forEach(e=>addEvent(e.message,e.event_type,e.time));
+        if(msg.order&&Object.keys(msg.order).length)renderCart(msg.order);
+        if(msg.complaints?.length)msg.complaints.forEach(c=>addComplaintEvent(c));
+        if(msg.scenario)updateScenario(msg.scenario);
+        if(msg.turn_count)document.getElementById('turnCtr').textContent=msg.turn_count;
+        if(msg.latency_history?.length){
+          const last=msg.latency_history[msg.latency_history.length-1];
+          updateLatency(last,msg.stats?.avg_latency_ms||0);
+        }
         break;
       case 'state':
         applyState(msg.state);
         if(msg.state!=='idle'&&!callStarted){callStarted=true;stats.calls++;updateStats({});startTimer();advanceFlow(1);}
+        if(msg.turn_count!=null)document.getElementById('turnCtr').textContent=msg.turn_count;
         break;
       case 'user_msg':
         addMessage('user',msg.text,msg.time);
@@ -998,6 +1190,19 @@ function connect(){
         if(msg.event_type==='confirmed'){advanceFlow(3);launchConfetti();}
         if(msg.event_type==='upsell')   advanceFlow(4);
         if(msg.event_type==='finalised')advanceFlow(5);
+        break;
+      case 'order_update':
+        renderCart(msg.order);
+        break;
+      case 'complaint':
+        addComplaintEvent(msg);
+        if(msg.stats)updateStats(msg.stats);
+        break;
+      case 'scenario':
+        updateScenario(msg.name);
+        break;
+      case 'latency':
+        updateLatency(msg.ms,msg.avg_ms);
         break;
       case 'stats':updateStats(msg);break;
     }

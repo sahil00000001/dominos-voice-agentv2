@@ -19,6 +19,7 @@ Provides two things:
        into the UI's logs panel without importing the whole class.
 """
 
+import time
 import threading
 from datetime import datetime
 from enum import Enum
@@ -57,10 +58,23 @@ _ui_instance: Optional["DominosUI"] = None
 
 
 def add_log(message: str) -> None:
-    """Push an order-event message into the UI logs panel. Safe to call from
-    tools.py or anywhere else — silently does nothing if UI isn't started."""
+    """Push an order-event message into the UI logs panel."""
     if _ui_instance is not None:
         _ui_instance._push_log(message)
+
+# Stub forwards — real implementations live in web_ui.py and are reached
+# through the _ui_instance singleton when WebDominosUI is active.
+def add_complaint(customer_name: str, complaint_type: str, text: str) -> None:
+    pass
+
+def update_order(**kwargs) -> None:
+    pass
+
+def set_scenario(scenario_name: str) -> None:
+    pass
+
+def record_latency(ms: float) -> None:
+    pass
 
 
 # ── Agent state machine ───────────────────────────────────────────────────
@@ -338,7 +352,8 @@ class VoiceUIProcessor(FrameProcessor):
         super().__init__()
         self._ui = ui
         self._context = context
-        self._last_shown_user: str = ""  # last user text we displayed
+        self._last_shown_user: str = ""
+        self._listen_end_ts: Optional[float] = None  # for latency measurement
 
     async def process_frame(self, frame: Frame, direction: FrameDirection) -> None:
         # Always pass the frame downstream first so the pipeline is never blocked
@@ -352,6 +367,7 @@ class VoiceUIProcessor(FrameProcessor):
             # VAD detected end of user speech; LLM will start soon.
             # By this point user_aggregator has already added the user message
             # to context, so we can read it here.
+            self._listen_end_ts = time.monotonic()
             self._ui.set_thinking()
             self._show_latest_user_from_context()
 
@@ -365,6 +381,14 @@ class VoiceUIProcessor(FrameProcessor):
 
         # ── TTS playing audio ───────────────────────────────────────────
         elif isinstance(frame, TTSStartedFrame):
+            if self._listen_end_ts is not None:
+                latency_ms = (time.monotonic() - self._listen_end_ts) * 1000
+                self._listen_end_ts = None
+                try:
+                    from web_ui import record_latency
+                    record_latency(latency_ms)
+                except Exception:
+                    pass
             self._ui.set_speaking()
 
         elif isinstance(frame, (TTSStoppedFrame, BotStoppedSpeakingFrame)):

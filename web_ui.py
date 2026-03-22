@@ -1,9 +1,9 @@
 """
 web_ui.py — Web Dashboard for Domino's Voice Receptionist
 ==========================================================
-Replaces the terminal Rich UI with a beautiful browser dashboard served over
-FastAPI + WebSocket. Keeps the exact same interface as DominosUI so that
-VoiceUIProcessor and tools.py work without any modification.
+FastAPI + WebSocket server broadcasting real-time JSON events to all
+connected browser clients.  Tracks order state, complaints, latency
+telemetry, and scenario detection in addition to the basic call flow.
 """
 
 import asyncio
@@ -12,50 +12,80 @@ import os
 import re
 import threading
 import time
-import webbrowser
 from datetime import datetime
 from typing import Optional, Set
 
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
-# ── Module-level singleton (mirrors ui.py pattern so tools.py works) ──────────
+# ── Module-level singleton ─────────────────────────────────────────────────
 _ui_instance: Optional["WebDominosUI"] = None
 
 
+# ── Module-level helpers (imported by tools.py and ui.py) ─────────────────
+
 def add_log(message: str) -> None:
-    """Called from tools.py — forwards to the web dashboard."""
     if _ui_instance is not None:
         _ui_instance._push_log(message)
 
+def add_complaint(customer_name: str, complaint_type: str, text: str) -> None:
+    if _ui_instance is not None:
+        _ui_instance._push_complaint(customer_name, complaint_type, text)
+
+def update_order(
+    customer_name: str = None,
+    order_items: list = None,
+    delivery_address: str = None,
+    order_total_inr: float = None,
+    status: str = None,
+    upsell_items: list = None,
+    estimated_delivery_minutes: int = None,
+) -> None:
+    if _ui_instance is not None:
+        _ui_instance._push_order_update(
+            customer_name, order_items, delivery_address,
+            order_total_inr, status, upsell_items, estimated_delivery_minutes,
+        )
+
+def set_scenario(scenario_name: str) -> None:
+    if _ui_instance is not None:
+        _ui_instance._push_scenario(scenario_name)
+
+def record_latency(ms: float) -> None:
+    if _ui_instance is not None:
+        _ui_instance._push_latency(ms)
+
 
 class WebDominosUI:
-    """
-    Web-based replacement for DominosUI.
-    Starts a FastAPI/uvicorn server in a background daemon thread and
-    broadcasts real-time JSON events to all connected browser clients.
-    """
-
     def __init__(self, port: int = 8000) -> None:
         global _ui_instance
         _ui_instance = self
 
-        # Also patch ui.py's singleton so `from ui import add_log` still works
         import ui as _ui_mod
         _ui_mod._ui_instance = self  # type: ignore[attr-defined]
 
         self._port = port
         self._connections: Set[WebSocket] = set()
         self._server_loop: Optional[asyncio.AbstractEventLoop] = None
+
         self._current_state = "idle"
-        self._stats = {"calls": 0, "orders": 0, "revenue": 0.0, "upsells": 0}
-        self._messages: list = []      # stored for replay on new connections
-        self._bot_buf: str = ""        # current in-progress bot reply
-        self._log_lines: list = []     # order events for replay
+        self._stats = {
+            "calls": 0, "orders": 0, "revenue": 0.0,
+            "upsells": 0, "complaints": 0, "avg_latency_ms": 0.0,
+        }
+        self._messages: list = []
+        self._bot_buf: str = ""
+        self._log_lines: list = []
+        self._complaints: list = []
+        self._order_state: dict = {}
+        self._latency_history: list = []
+        self._current_scenario: str = ""
+        self._turn_count: int = 0
+
         self._app = self._build_app()
 
-    # ── FastAPI app ───────────────────────────────────────────────────────────
+    # ── FastAPI ───────────────────────────────────────────────────────────
 
     def _build_app(self) -> FastAPI:
         app = FastAPI()
@@ -66,13 +96,22 @@ class WebDominosUI:
             with open(html_path, encoding="utf-8") as f:
                 return HTMLResponse(f.read())
 
+        @app.get("/api/stats")
+        async def api_stats():
+            return JSONResponse({
+                "stats": self._stats,
+                "order": self._order_state,
+                "complaints": self._complaints,
+                "latency_history": self._latency_history,
+                "current_scenario": self._current_scenario,
+                "turn_count": self._turn_count,
+            })
+
         @app.websocket("/ws")
         async def ws_endpoint(websocket: WebSocket):
             await websocket.accept()
             self._connections.add(websocket)
-            # Send current state to newly connected client
             try:
-                # Send full state snapshot so late-connecting browsers catch up
                 await websocket.send_text(json.dumps({
                     "type": "init",
                     "state": self._current_state,
@@ -80,6 +119,11 @@ class WebDominosUI:
                     "messages": self._messages,
                     "bot_buf": self._bot_buf,
                     "log_lines": self._log_lines,
+                    "complaints": self._complaints,
+                    "order": self._order_state,
+                    "scenario": self._current_scenario,
+                    "latency_history": self._latency_history,
+                    "turn_count": self._turn_count,
                 }))
             except Exception:
                 pass
@@ -91,32 +135,29 @@ class WebDominosUI:
 
         return app
 
-    # ── Lifecycle ─────────────────────────────────────────────────────────────
+    # ── Lifecycle ──────────────────────────────────────────────────────────
 
     def start(self) -> None:
         def _run():
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             self._server_loop = loop
-            config = uvicorn.Config(
-                self._app, host="0.0.0.0", port=self._port, log_level="error"
-            )
+            config = uvicorn.Config(self._app, host="0.0.0.0", port=self._port, log_level="error")
             server = uvicorn.Server(config)
             loop.run_until_complete(server.serve())
 
         t = threading.Thread(target=_run, daemon=True)
         t.start()
-
-        # Wait for server to bind before opening browser
         time.sleep(1.2)
         url = f"http://localhost:{self._port}"
         print(f"\n  🌐  Dashboard → {url}\n  Speak into your mic. Press Ctrl+C to end.\n")
+        import webbrowser
         webbrowser.open(url)
 
     def stop(self) -> None:
-        pass  # daemon thread exits automatically with the process
+        pass
 
-    # ── State setters (identical interface to DominosUI) ──────────────────────
+    # ── State setters ──────────────────────────────────────────────────────
 
     def set_idle(self) -> None:
         self._current_state = "idle"
@@ -128,13 +169,14 @@ class WebDominosUI:
 
     def set_thinking(self) -> None:
         self._current_state = "thinking"
-        self._emit({"type": "state", "state": "thinking"})
+        self._turn_count += 1
+        self._emit({"type": "state", "state": "thinking", "turn_count": self._turn_count})
 
     def set_speaking(self) -> None:
         self._current_state = "speaking"
         self._emit({"type": "state", "state": "speaking"})
 
-    # ── Conversation helpers (identical interface to DominosUI) ───────────────
+    # ── Conversation ───────────────────────────────────────────────────────
 
     def add_user_message(self, text: str) -> None:
         ts = _ts()
@@ -153,13 +195,71 @@ class WebDominosUI:
         self._bot_buf = ""
         self._emit({"type": "bot_done", "time": ts})
 
-    # ── Order log ─────────────────────────────────────────────────────────────
+    # ── Order tracking ─────────────────────────────────────────────────────
+
+    def _push_order_update(
+        self, customer_name, order_items, delivery_address,
+        order_total_inr, status, upsell_items, estimated_delivery_minutes,
+    ) -> None:
+        if customer_name is not None:
+            self._order_state["customer_name"] = customer_name
+        if order_items is not None:
+            self._order_state["order_items"] = order_items
+        if delivery_address is not None:
+            self._order_state["delivery_address"] = delivery_address
+        if order_total_inr is not None:
+            self._order_state["order_total_inr"] = order_total_inr
+        if status is not None:
+            self._order_state["status"] = status
+        if upsell_items is not None:
+            existing = self._order_state.get("upsell_items", [])
+            self._order_state["upsell_items"] = existing + upsell_items
+        if estimated_delivery_minutes is not None:
+            self._order_state["estimated_delivery_minutes"] = estimated_delivery_minutes
+
+        self._emit({"type": "order_update", "order": {**self._order_state}, "time": _ts()})
+
+    # ── Complaint tracking ─────────────────────────────────────────────────
+
+    def _push_complaint(self, customer_name: str, complaint_type: str, text: str) -> None:
+        ts = _ts()
+        is_refund = complaint_type == "refund"
+        entry = {
+            "type": "complaint",
+            "customer_name": customer_name,
+            "complaint_type": complaint_type,
+            "text": text,
+            "is_refund": is_refund,
+            "time": ts,
+        }
+        self._complaints.append(entry)
+        self._stats["complaints"] += 1
+        self._emit({**entry, "stats": {**self._stats}})
+
+    # ── Scenario ───────────────────────────────────────────────────────────
+
+    def _push_scenario(self, scenario_name: str) -> None:
+        self._current_scenario = scenario_name
+        self._emit({"type": "scenario", "name": scenario_name, "time": _ts()})
+
+    # ── Latency ────────────────────────────────────────────────────────────
+
+    def _push_latency(self, ms: float) -> None:
+        self._latency_history.append(round(ms, 1))
+        if len(self._latency_history) > 50:
+            self._latency_history.pop(0)
+        avg = sum(self._latency_history) / len(self._latency_history)
+        self._stats["avg_latency_ms"] = round(avg, 1)
+        self._emit({
+            "type": "latency",
+            "ms": round(ms, 1),
+            "avg_ms": self._stats["avg_latency_ms"],
+        })
+
+    # ── Order log ──────────────────────────────────────────────────────────
 
     def _push_log(self, message: str) -> None:
-        # Strip Rich markup tags like [bold green], [/dim], etc.
         clean = re.sub(r"\[/?[^\]]*\]", "", message).strip()
-
-        # Detect event type and update stats
         event_type = "default"
         if "ORDER CONFIRMED" in message:
             event_type = "confirmed"
@@ -186,7 +286,7 @@ class WebDominosUI:
         self._log_lines.append(entry)
         self._emit(entry)
 
-    # ── Broadcast ─────────────────────────────────────────────────────────────
+    # ── Broadcast ──────────────────────────────────────────────────────────
 
     def _emit(self, event: dict) -> None:
         if not self._connections or self._server_loop is None:
