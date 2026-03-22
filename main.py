@@ -151,7 +151,7 @@ async def main() -> None:
     # ------------------------------------------------------------------
     llm = GroqLLMService(
         api_key=groq_api_key,
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant",   # 8B is 4–5× faster than 70B on Groq, sufficient for ordering
     )
 
     # ------------------------------------------------------------------
@@ -186,7 +186,7 @@ async def main() -> None:
         context,
         user_params=LLMUserAggregatorParams(
             # vad_stop_secs: wait 0.5s of silence before treating speech as done
-            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.5)),
+            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.3)),
             # Only mute during tool calls; allow user to barge-in while bot speaks.
             user_mute_strategies=[
                 FunctionCallUserMuteStrategy(),
